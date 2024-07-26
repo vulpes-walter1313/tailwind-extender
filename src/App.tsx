@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { SubmitHandler, useFieldArray, useForm } from "react-hook-form";
 import { MdAddCircleOutline } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
@@ -16,6 +16,14 @@ export type FormValues = {
 };
 function App() {
   const [formData, setFormData] = useState<FormValues | undefined>();
+
+  const lastFieldRef = useRef<InputGroupType>({
+    name: "h1",
+    fontSize: 52,
+    fontWeight: 700,
+    lineHeight: 115,
+  });
+
   const {
     register,
     control,
@@ -26,6 +34,7 @@ function App() {
       classes: [{ name: "h1", fontSize: 52, fontWeight: 700, lineHeight: 115 }],
     },
   });
+
   const { fields, append, remove } = useFieldArray({
     name: "classes",
     control,
@@ -37,7 +46,8 @@ function App() {
       // }
       validate: (values) => {
         const allValuesValid = values.every((currentVal) => {
-          const nameOkay = !currentVal.name.includes(" ");
+          const nameOkay =
+            !currentVal.name.includes(" ") || currentVal.name.length !== 0;
           const weightOkay = [
             100, 200, 300, 400, 500, 600, 700, 800, 900,
           ].includes(currentVal.fontWeight);
@@ -49,10 +59,12 @@ function App() {
       },
     },
   });
+
   const onSubmit: SubmitHandler<FormValues> = (data) => {
-    console.log("onSubmit hit");
-    console.log(data);
-    console.log(fields);
+    lastFieldRef.current.name = data?.classes?.at(-1)?.name ?? "";
+    lastFieldRef.current.fontWeight = data?.classes?.at(-1)?.fontWeight ?? 700;
+    lastFieldRef.current.fontSize = data?.classes?.at(-1)?.fontSize ?? 16;
+    lastFieldRef.current.lineHeight = data?.classes?.at(-1)?.lineHeight ?? 115;
     setFormData(data);
   };
 
@@ -136,10 +148,11 @@ function App() {
           <button
             type="button"
             className="flex items-center gap-4 rounded-lg border border-gray-950/15 bg-gray-50 px-4 py-2 text-lg text-msmp text-gray-900 lg:text-dsmp"
-            onClick={async () => {
+            onClick={async (e) => {
               // see if there is a way to submit those values and the use them
               // to auto complete the new input groups.
-              await handleSubmit(onSubmit);
+              e.preventDefault();
+              await handleSubmit(onSubmit)();
               if (fields.length < 1) {
                 console.log("RHC thinks fields array is less than one");
                 append({
@@ -149,16 +162,11 @@ function App() {
                   lineHeight: 115,
                 });
               } else {
-                console.log("fields in Add another extention onClick", fields);
-                const lastField = fields.at(-1);
-                console.log(
-                  `last fontSize: ${lastField!.fontSize}, fontWeight: ${lastField!.fontWeight}, lineHieght: ${lastField!.lineHeight}`,
-                );
                 append({
                   name: "",
-                  fontSize: lastField!.fontSize ?? 52,
-                  fontWeight: lastField!.fontWeight ?? 700,
-                  lineHeight: lastField!.lineHeight ?? 145,
+                  fontSize: lastFieldRef.current.fontSize ?? 52,
+                  fontWeight: lastFieldRef.current.fontWeight ?? 700,
+                  lineHeight: lastFieldRef.current.lineHeight ?? 145,
                 });
               }
             }}
